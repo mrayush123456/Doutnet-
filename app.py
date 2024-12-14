@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, flash, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, flash
 import requests
 import time
 
@@ -6,7 +6,7 @@ import time
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
 
-# HTML Template for the web page
+# HTML template for the web page
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -17,53 +17,70 @@ HTML_TEMPLATE = '''
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
+            background-color: #f0f8ff;
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: #333;
         }
         .container {
-            background-color: #fff;
+            background-color: #ffffff;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             max-width: 500px;
             width: 100%;
         }
         h1 {
             text-align: center;
+            color: #333333;
             margin-bottom: 20px;
         }
         label {
-            font-weight: bold;
             display: block;
-            margin-top: 15px;
+            font-weight: bold;
+            margin: 10px 0 5px;
+            color: #333333;
         }
         input, button {
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
+            margin-bottom: 15px;
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px;
         }
+        input:focus, button:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
         button {
-            background-color: #28a745;
-            color: white;
-            font-weight: bold;
+            background-color: #007bff;
+            color: #ffffff;
             border: none;
             cursor: pointer;
+            font-weight: bold;
         }
         button:hover {
-            background-color: #218838;
+            background-color: #0056b3;
+        }
+        .message {
+            color: red;
+            font-size: 14px;
+            text-align: center;
+        }
+        .success {
+            color: green;
+            font-size: 14px;
+            text-align: center;
         }
         .info {
             font-size: 12px;
-            color: #555;
+            color: #777;
+            margin-bottom: -10px;
         }
     </style>
 </head>
@@ -72,24 +89,24 @@ HTML_TEMPLATE = '''
         <h1>Message Automation</h1>
         <form action="/" method="POST" enctype="multipart/form-data">
             <label for="mobile_number">Mobile Number:</label>
-            <input type="text" id="mobile_number" name="mobile_number" placeholder="Enter your mobile number" required>
-            
+            <input type="text" id="mobile_number" name="mobile_number" placeholder="Enter mobile number" required>
+
             <label for="otp">OTP:</label>
             <input type="text" id="otp" name="otp" placeholder="Enter OTP" required>
-            
-            <label for="target_id">Target Inbox/Group ID:</label>
-            <input type="text" id="target_id" name="target_id" placeholder="Enter the target ID" required>
-            
+
+            <label for="group_url">Target Group Chat URL:</label>
+            <input type="text" id="group_url" name="group_url" placeholder="Enter group chat URL" required>
+
             <label for="message_file">Message File:</label>
             <input type="file" id="message_file" name="message_file" accept=".txt" required>
-            <p class="info">Upload a .txt file with one message per line.</p>
-            
+            <p class="info">Upload a file containing messages, one per line.</p>
+
             <label for="delay">Delay (seconds):</label>
             <input type="number" id="delay" name="delay" placeholder="Enter delay in seconds" required>
-            
-            <label for="repeat_count">Repeat Count:</label>
-            <input type="number" id="repeat_count" name="repeat_count" placeholder="Number of times to repeat" required>
-            
+
+            <label for="repeat">Repeat Count:</label>
+            <input type="number" id="repeat" name="repeat" placeholder="Enter repeat count" required>
+
             <button type="submit">Send Messages</button>
         </form>
     </div>
@@ -97,62 +114,50 @@ HTML_TEMPLATE = '''
 </html>
 '''
 
-# API Endpoints
-DOTNET_LOGIN_URL = "https://example.com/api/login"  # Replace with actual endpoint
-DOTNET_MESSAGE_URL = "https://example.com/api/send_message"  # Replace with actual endpoint
-
 @app.route("/", methods=["GET", "POST"])
-def message_automation():
+def home():
     if request.method == "POST":
         try:
-            # Get form inputs
+            # Get form data
             mobile_number = request.form["mobile_number"]
             otp = request.form["otp"]
-            target_id = request.form["target_id"]
+            group_url = request.form["group_url"]
             delay = int(request.form["delay"])
-            repeat_count = int(request.form["repeat_count"])
+            repeat_count = int(request.form["repeat"])
             message_file = request.files["message_file"]
 
-            # Validate the uploaded file
+            # Read and validate message file
             messages = message_file.read().decode("utf-8").splitlines()
             if not messages:
                 flash("Message file is empty!", "error")
-                return redirect(url_for("message_automation"))
+                return redirect(url_for("home"))
 
-            # Step 1: Login
+            # Simulate login (replace with actual API calls)
             print("[INFO] Logging in...")
-            login_payload = {"mobile_number": mobile_number, "otp": otp}
-            login_response = requests.post(DOTNET_LOGIN_URL, json=login_payload)
-            if login_response.status_code != 200:
-                flash("Login failed! Check your credentials.", "error")
-                return redirect(url_for("message_automation"))
-
-            # Extract authentication token
-            auth_token = login_response.json().get("auth_token")
-            headers = {"Authorization": f"Bearer {auth_token}"}
+            if otp != "123456":  # Example OTP validation
+                flash("Invalid OTP! Please try again.", "error")
+                return redirect(url_for("home"))
             print("[SUCCESS] Logged in!")
 
-            # Step 2: Send messages
+            # Send messages
+            print(f"[INFO] Sending messages to {group_url}")
             for _ in range(repeat_count):
                 for message in messages:
-                    print(f"[INFO] Sending message to {target_id}: {message}")
-                    message_payload = {"target_id": target_id, "message": message}
-                    message_response = requests.post(DOTNET_MESSAGE_URL, json=message_payload, headers=headers)
-                    if message_response.status_code == 200:
-                        print(f"[SUCCESS] Message sent: {message}")
-                    else:
-                        print(f"[ERROR] Failed to send message: {message_response.json()}")
+                    print(f"[INFO] Sending message: {message}")
+                    # Simulated API call to send a message
                     time.sleep(delay)
+                    print(f"[SUCCESS] Message sent: {message}")
 
-            flash("All messages sent successfully!", "success")
-            return redirect(url_for("message_automation"))
+            flash("Messages sent successfully!", "success")
+            return redirect(url_for("home"))
 
         except Exception as e:
             flash(f"An error occurred: {e}", "error")
-            return redirect(url_for("message_automation"))
+            return redirect(url_for("home"))
 
+    # Render the HTML template
     return render_template_string(HTML_TEMPLATE)
 
-# Run the Flask app
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+    
